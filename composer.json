@@ -1,0 +1,26 @@
+{
+  "name": "bapcat/unifi",
+  "description": "Handles interaction with UniFi access points",
+  "license": "GPLv3",
+  "homepage": "http://github.com/BapCat/UniFi",
+  "keywords": ["UBNT", "UniFi", "AP", "Access", "Point"],
+  "authors": [
+    {
+      "name": "Corey Frenette",
+      "email": "corey@narwhunderful.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.6.0",
+    "ext-curl": "*",
+    "guzzlehttp/guzzle": "^6.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BapCat\\UniFi\\": "src/"
+    }
+  }
+}
