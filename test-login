@@ -5,13 +5,58 @@ $username = 'username';
 $password = 'password';
 
 use BapCat\Phi\Phi;
+use BapCat\Persist\Drivers\Local\LocalDriver;
+use BapCat\Remodel\Registry;
+use Jenssegers\Mongodb\Connection;
+use Illuminate\Database\ConnectionInterface;
+
 use BapCat\UniFi\UniFi;
 use BapCat\UniFi\Actions;
+use BapCat\UniFi\EntityProvider;
 
 $ioc = Phi::instance();
 
+// Grab filesystem directories
+$persist = new LocalDriver(__DIR__);
+$cache   = $persist->getDirectory('/cache');
+
+$ioc->bind(ConnectionInterface::class, function() {
+  $connection = new Connection([
+    'driver'   => 'mongodb',
+    'host'     => 'localhost',
+    'port'     => 27117,
+    'database' => 'ace',
+    'username' => '',
+    'password' => '',
+    'options' => [
+      'db' => 'admin' // sets the authentication database required by mongo 3
+    ]
+  ]);
+  
+  $connection->useDefaultQueryGrammar();
+  
+  return $connection;
+});
+
+$remodel = $ioc->make(Registry::class, [$cache]);
+
+$entities = $ioc->make(EntityProvider::class, [$remodel]);
+$entities->register();
+$entities->boot();
+
 $unifi = new UniFi($ioc);
-$unifi->login($username, $password, function(Actions $actions) {
+/*$unifi->login($username, $password, function(Actions $actions) {
   echo json_encode(json_decode((string)$actions->staStats('default')->getBody()), JSON_PRETTY_PRINT);
   //$actions->authorize('default', '00:00:00:00:00:00', 1);
-});
+});*/
+
+use BapCat\UniFi\AccessPointGateway;
+use BapCat\UniFi\SiteGateway;
+
+var_dump('SITES ---------------------------------------');
+$sites = $ioc->make(SiteGateway::class);
+var_dump($sites->query()->get());
+
+var_dump('APS ---------------------------------------');
+$aps = $ioc->make(AccessPointGateway::class);
+var_dump($aps->query()->get());
