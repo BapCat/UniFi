@@ -20,24 +20,6 @@ $ioc = Phi::instance();
 $persist = new LocalDriver(__DIR__);
 $cache   = $persist->getDirectory('/cache');
 
-$ioc->bind(ConnectionInterface::class, function() {
-  $connection = new Connection([
-    'driver'   => 'mongodb',
-    'host'     => 'localhost',
-    'port'     => 27117,
-    'database' => 'ace',
-    'username' => '',
-    'password' => '',
-    'options' => [
-      'db' => 'admin' // sets the authentication database required by mongo 3
-    ]
-  ]);
-  
-  $connection->useDefaultQueryGrammar();
-  
-  return $connection;
-});
-
 $remodel = $ioc->make(Registry::class, [$cache]);
 
 $entities = $ioc->make(EntityProvider::class, [$remodel]);

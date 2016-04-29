@@ -1,15 +1,19 @@
 <?php namespace BapCat\UniFi;
 
+use BapCat\Interfaces\Ioc\Ioc;
 use BapCat\Remodel\EntityDefinition;
 use BapCat\Remodel\Registry;
 use BapCat\Services\ServiceProvider;
 use BapCat\Values\Ip;
 use BapCat\Values\Text;
+use Jenssegers\Mongodb\Connection;
 
 class EntityProvider implements ServiceProvider {
+  private $ioc;
   private $remodel;
   
-  public function __construct(Registry $remodel) {
+  public function __construct(Ioc $ioc, Registry $remodel) {
+    $this->ioc     = $ioc;
     $this->remodel = $remodel;
   }
   
@@ -47,6 +51,36 @@ class EntityProvider implements ServiceProvider {
     $event->required('_id', Text::class); // MONGOID
     
     $this->remodel->register($event);
+    
+    //@TODO hardcoded values
+    $this->ioc->bind(Connection::class, function() {
+      $connection = new Connection([
+        'driver'   => 'mongodb',
+        'host'     => 'localhost',
+        'port'     => 27117,
+        'database' => 'ace',
+        'username' => '',
+        'password' => '',
+        'options' => [
+          'db' => 'admin' // sets the authentication database required by mongo 3
+        ]
+      ]);
+      
+      $connection->useDefaultQueryGrammar();
+      return $connection;
+    });
+    
+    $this->ioc->bind(SiteGateway::class, function() {
+      return new SiteGateway($this->ioc->make(Connection::class));
+    });
+    
+    $this->ioc->bind(AccessPointGateway::class, function() {
+      return new AccessPointGateway($this->ioc->make(Connection::class));
+    });
+    
+    $this->ioc->bind(EventGateway::class, function() {
+      return new EventGateway($this->ioc->make(Connection::class));
+    });
   }
   
   public function boot() {
