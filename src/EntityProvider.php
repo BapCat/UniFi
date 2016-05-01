@@ -52,6 +52,20 @@ class EntityProvider implements ServiceProvider {
     
     $this->remodel->register($event);
     
+    $guest = new EntityDefinition(Guest::class);
+    $guest->table('guest');
+    $guest->required('_id', Text::class); // MONGOID
+    $guest->required('site_id', Text::class); // MONGOID
+    $guest->required('mac', Text::class); // MAC
+    $guest->required('ap_mac', Text::class); // MAC
+    $guest->required('start', Text::class); // Number
+    $guest->required('end', Text::class); // Number
+    $guest->required('duration', Text::class); // Number
+    $guest->required('authorized_by', Text::class);
+    $guest->required('unauthorized_by', Text::class);
+    
+    $this->remodel->register($guest);
+    
     //@TODO hardcoded values
     $this->ioc->bind(Connection::class, function() {
       $connection = new Connection([
@@ -80,6 +94,10 @@ class EntityProvider implements ServiceProvider {
     
     $this->ioc->bind(EventGateway::class, function() {
       return new EventGateway($this->ioc->make(Connection::class));
+    });
+    
+    $this->ioc->bind(GuestGateway::class, function() {
+      return new GuestGateway($this->ioc->make(Connection::class));
     });
   }
   
