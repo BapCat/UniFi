@@ -7,24 +7,17 @@ use GuzzleHttp\Client;
 
 class UniFi {
   private $ioc;
+  private $client;
   
-  public function __construct(Ioc $ioc) {
-    $this->ioc = $ioc;
+  public function __construct(Ioc $ioc, Client $client) {
+    $this->ioc    = $ioc;
+    $this->client = $client;
   }
   
-  /**
-   * @TODO base_uri
-   */
   public function login($username, $password, callable $callback) {
-    $client = new Client([
-      'base_uri' => 'https://srnc.playat.ch:8443',
-      'cookies'  => true,
-      'verify'   => false
-    ]);
-    
-    $authenticator = $this->ioc->make(Authenticator::class, [$client]);
+    $authenticator = $this->ioc->make(Authenticator::class, [$this->client]);
     $authenticator->login($username, $password);
-    $callback(new Actions($client));
+    $callback($this->ioc->make(Actions::class, [$this->client]));
     $authenticator->logout();
   }
   
@@ -34,8 +27,7 @@ class UniFi {
   public function isAuthedByAp($guest_mac, $ap_mac) {
     $guest_gateway = $this->ioc->make(GuestGateway::class);
     
-    //@TODO: Do time stuff at DB level
-    $guests = $guest_gateway->query()->whereNull('unauthorized_by')->where('end', '>', time() - 120 * 60)->where('mac', $guest_mac)->get();
+    $guests = $guest_gateway->query()->authed()->where('mac', $guest_mac)->get();
     
     foreach($guests as $guest) {
       if($guest['ap_mac'] === $ap_mac) {
@@ -53,8 +45,7 @@ class UniFi {
     $guest_gateway = $this->ioc->make(GuestGateway::class);
     $site_gateway  = $this->ioc->make(SiteGateway::class);
     
-    //@TODO: Do time stuff at DB level
-    $guests = $guest_gateway->query()->whereNull('unauthorized_by')->where('end', '>', time() - 120 * 60)->where('mac', $guest_mac)->get();
+    $guests = $guest_gateway->query()->authed()->where('mac', $guest_mac)->get();
     
     foreach($guests as $guest) {
       $site = $site_gateway->query()->where('_id', $guest['site_id'])->get();
@@ -75,11 +66,11 @@ class UniFi {
     $events = $this->ioc->make(EventGateway::class);
     $sites  = $this->ioc->make(SiteGateway::class);
     
-    $connect = $events->query()->where('key', 'EVT_WG_Connected')->where('guest', $mac)->orderBy('_id', 'desc')->get();
+    $connect = $events->query()->guestConnected()->forGuest($mac)->latest()->get();
     $connect = array_shift($connect);
     
     if($connect !== null) {
-      $disconnect = $events->query()->where('key', 'EVT_WG_Disconnected')->where('guest', $mac)->where('_id', '>', $connect['_id'])->get();
+      $disconnect = $events->query()->guestDisconnected()->forGuest($mac)->since($connect['_id'])->get();
       $disconnect = array_shift($disconnect);
       
       if($disconnect === null) {

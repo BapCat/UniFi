@@ -3,12 +3,14 @@
 
 $username = 'username';
 $password = 'password';
+$base_uri = 'https://example.com:8443';
 
 use BapCat\Phi\Phi;
 use BapCat\Persist\Drivers\Local\LocalDriver;
 use BapCat\Remodel\Registry;
-use Jenssegers\Mongodb\Connection;
+use GuzzleHttp\Client;
 use Illuminate\Database\ConnectionInterface;
+use Jenssegers\Mongodb\Connection;
 
 use BapCat\UniFi\UniFi;
 use BapCat\UniFi\Actions;
@@ -26,7 +28,13 @@ $entities = $ioc->make(EntityProvider::class, [$remodel]);
 $entities->register();
 $entities->boot();
 
-$unifi = new UniFi($ioc);
+$client = new Client([
+  'base_uri' => $base_uri,
+  'cookies'  => true,
+  'verify'   => false
+]);
+
+$unifi = new UniFi($ioc, $client);
 /*$unifi->login($username, $password, function(Actions $actions) {
   echo json_encode(json_decode((string)$actions->staStats('default')->getBody()), JSON_PRETTY_PRINT);
   //$actions->authorize('default', '00:00:00:00:00:00', 1);
@@ -44,6 +52,9 @@ var_dump('APS ---------------------------------------');
 $aps = $ioc->make(AccessPointGateway::class);
 var_dump($aps->query()->get());
 
-var_dump('EVENTS -> GUEST AUTH ----------------------');
+var_dump('EVENTS -> GUEST AUTH + CONNECTED ----------');
 $events = $ioc->make(EventGateway::class);
 var_dump($events->query()->guestAuthorized()->orGuestConnected()->get());
+
+var_dump('AT SITE? ----------------------------------');
+var_dump($unifi->isAtSite('00:00:00:00:00:00', 'default'));
