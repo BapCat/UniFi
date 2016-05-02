@@ -3,6 +3,7 @@
 use BapCat\Interfaces\Ioc\Ioc;
 use BapCat\Remodel\EntityDefinition;
 use BapCat\Remodel\Registry;
+use BapCat\Remongel\MongoId;
 use BapCat\Services\ServiceProvider;
 use BapCat\Values\Ip;
 use BapCat\Values\Text;
@@ -65,7 +66,7 @@ class EntityProvider implements ServiceProvider {
   private function registerSite() {
     $site = new EntityDefinition(Site::class);
     $site->table('site');
-    $site->required('_id', Text::class); // MONGOID
+    $site->required('_id', MongoId::class);
     $site->required('name', Text::class);
     $site->optional('key', Text::class);
     $site->optional('desc', Text::class);
@@ -80,14 +81,14 @@ class EntityProvider implements ServiceProvider {
   private function registerAccessPoint() {
     $ap = new EntityDefinition(AccessPoint::class);
     $ap->table('device');
-    $ap->required('_id', Text::class); // MONGOID
+    $ap->required('_id', MongoId::class);
     $ap->required('ip', Ip::class);
     $ap->required('mac', Text::class); //MAC
     $ap->required('model', Text::class);
     $ap->required('type', Text::class);
     $ap->required('version', Text::class);
     $ap->required('adopted', Text::class); // BOOL
-    $ap->required('site_id', Text::class); // MONGOID
+    $ap->required('site_id', MongoId::class);
     $ap->required('name', Text::class);
     $ap->required('serial', Text::class);
     
@@ -113,7 +114,7 @@ class EntityProvider implements ServiceProvider {
     
     $event = new EntityDefinition(Event::class);
     $event->table('event');
-    $event->required('_id', Text::class); // MONGOID
+    $event->required('_id', MongoId::class);
     
     foreach($events as $name => $key) {
       $event->scope($name, function($query) use($key) {
@@ -125,11 +126,11 @@ class EntityProvider implements ServiceProvider {
       });
     }
     
-    $event->scope('since', function($query, $id) { // MONGOID
+    $event->scope('since', function($query, MongoId $id) {
       return $query->where('_id', '>', $id);
     });
     
-    $event->scope('forGuest', function($query, $guest) { // MONGOID
+    $event->scope('forGuest', function($query, $guest) { // MAC
       return $query->where('guest', $guest);
     });
     
@@ -143,8 +144,8 @@ class EntityProvider implements ServiceProvider {
   private function registerGuest() {
     $guest = new EntityDefinition(Guest::class);
     $guest->table('guest');
-    $guest->required('_id', Text::class); // MONGOID
-    $guest->required('site_id', Text::class); // MONGOID
+    $guest->required('_id', MongoId::class);
+    $guest->required('site_id', MongoId::class);
     $guest->required('mac', Text::class); // MAC
     $guest->required('ap_mac', Text::class); // MAC
     $guest->required('start', Text::class); // Number
