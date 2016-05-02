@@ -126,7 +126,7 @@ class EntityProvider implements ServiceProvider {
       });
     }
     
-    $event->scope('since', function($query, MongoId $id) {
+    $event->scope('since', function($query, $id) {
       return $query->where('_id', '>', $id);
     });
     
