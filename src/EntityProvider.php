@@ -18,53 +18,10 @@ class EntityProvider implements ServiceProvider {
   }
   
   public function register() {
-    $site = new EntityDefinition(Site::class);
-    $site->table('site');
-    $site->required('_id', Text::class); // MONGOID
-    $site->required('name', Text::class);
-    $site->optional('key', Text::class);
-    $site->optional('desc', Text::class);
-    $site->required('attr_hidden_id', Text::class);
-    $site->optional('attr_hidden', Text::class); // BOOL
-    $site->optional('attr_no_delete', Text::class); // BOOL
-    $site->optional('attr_no_edit', Text::class); // BOOL
-    
-    $this->remodel->register($site);
-    
-    $ap = new EntityDefinition(AccessPoint::class);
-    $ap->table('device');
-    $ap->required('_id', Text::class); // MONGOID
-    $ap->required('ip', Ip::class);
-    $ap->required('mac', Text::class); //MAC
-    $ap->required('model', Text::class);
-    $ap->required('type', Text::class);
-    $ap->required('version', Text::class);
-    $ap->required('adopted', Text::class); // BOOL
-    $ap->required('site_id', Text::class); // MONGOID
-    $ap->required('name', Text::class);
-    $ap->required('serial', Text::class);
-    
-    $this->remodel->register($ap);
-    
-    $event = new EntityDefinition(Event::class);
-    $event->table('event');
-    $event->required('_id', Text::class); // MONGOID
-    
-    $this->remodel->register($event);
-    
-    $guest = new EntityDefinition(Guest::class);
-    $guest->table('guest');
-    $guest->required('_id', Text::class); // MONGOID
-    $guest->required('site_id', Text::class); // MONGOID
-    $guest->required('mac', Text::class); // MAC
-    $guest->required('ap_mac', Text::class); // MAC
-    $guest->required('start', Text::class); // Number
-    $guest->required('end', Text::class); // Number
-    $guest->required('duration', Text::class); // Number
-    $guest->required('authorized_by', Text::class);
-    $guest->required('unauthorized_by', Text::class);
-    
-    $this->remodel->register($guest);
+    $this->registerSite();
+    $this->registerAccessPoint();
+    $this->registerEvent();
+    $this->registerGuest();
     
     //@TODO hardcoded values
     $this->ioc->bind(Connection::class, function() {
@@ -103,5 +60,108 @@ class EntityProvider implements ServiceProvider {
   
   public function boot() {
     
+  }
+  
+  private function registerSite() {
+    $site = new EntityDefinition(Site::class);
+    $site->table('site');
+    $site->required('_id', Text::class); // MONGOID
+    $site->required('name', Text::class);
+    $site->optional('key', Text::class);
+    $site->optional('desc', Text::class);
+    $site->required('attr_hidden_id', Text::class);
+    $site->optional('attr_hidden', Text::class); // BOOL
+    $site->optional('attr_no_delete', Text::class); // BOOL
+    $site->optional('attr_no_edit', Text::class); // BOOL
+    
+    $this->remodel->register($site);
+  }
+  
+  private function registerAccessPoint() {
+    $ap = new EntityDefinition(AccessPoint::class);
+    $ap->table('device');
+    $ap->required('_id', Text::class); // MONGOID
+    $ap->required('ip', Ip::class);
+    $ap->required('mac', Text::class); //MAC
+    $ap->required('model', Text::class);
+    $ap->required('type', Text::class);
+    $ap->required('version', Text::class);
+    $ap->required('adopted', Text::class); // BOOL
+    $ap->required('site_id', Text::class); // MONGOID
+    $ap->required('name', Text::class);
+    $ap->required('serial', Text::class);
+    
+    $this->remodel->register($ap);
+  }
+  
+  private function registerEvent() {
+    $events = [
+      'apAdopted'               => 'EVT_AP_Adopted',
+      'apConnected'             => 'EVT_AP_Connected',
+      'apLostContact'           => 'EVT_AP_Lost_Contact',
+      'apRestartedUnknown'      => 'EVT_AP_RestartedUnknown',
+      'apUpgradeScheduled'      => 'EVT_AP_UpgradeScheduled',
+      'apUpgraded'              => 'EVT_AP_Upgraded',
+      'guestAuthorized'         => 'EVT_AD_GuestAuthorizedFor',
+      'guestUnauthorized'       => 'EVT_AD_GuestUnauthorized',
+      'guestConnected'          => 'EVT_WG_Connected',
+      'guestDisconnected'       => 'EVT_WG_Disconnected',
+      'guestAuthorizationEnded' => 'EVT_WG_AuthorizationEnded',
+      'userConnected'           => 'EVT_WU_Connected',
+      'userDisconnected'        => 'EVT_WU_Disconnected'
+    ];
+    
+    $event = new EntityDefinition(Event::class);
+    $event->table('event');
+    $event->required('_id', Text::class); // MONGOID
+    
+    foreach($events as $name => $key) {
+      $event->scope($name, function($query) use($key) {
+        return $query->where('key', $key);
+      });
+      
+      $event->scope('or' . ucfirst($name), function($query) use($key) {
+        return $query->orWhere('key', $key);
+      });
+    }
+    
+    $event->scope('since', function($query, $id) { // MONGOID
+      return $query->where('_id', '>', $id);
+    });
+    
+    $event->scope('forGuest', function($query, $guest) { // MONGOID
+      return $query->where('guest', $guest);
+    });
+    
+    $event->scope('latest', function($query) {
+      return $query->orderBy('_id', 'desc');
+    });
+    
+    $this->remodel->register($event);
+  }
+  
+  private function registerGuest() {
+    $guest = new EntityDefinition(Guest::class);
+    $guest->table('guest');
+    $guest->required('_id', Text::class); // MONGOID
+    $guest->required('site_id', Text::class); // MONGOID
+    $guest->required('mac', Text::class); // MAC
+    $guest->required('ap_mac', Text::class); // MAC
+    $guest->required('start', Text::class); // Number
+    $guest->required('end', Text::class); // Number
+    $guest->required('duration', Text::class); // Number
+    $guest->required('authorized_by', Text::class);
+    $guest->required('unauthorized_by', Text::class);
+    
+    $guest->scope('authed', function($query) {
+      //TODO: Figure out MongoDB-local timestamp function
+      //TODO: Auth time needs to be site-dependent
+      return $query
+        ->whereNull('unauthorized_by')
+        ->where('end', '>', time() - 120 * 60)
+      ;
+    });
+    
+    $this->remodel->register($guest);
   }
 }

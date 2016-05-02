@@ -19,7 +19,7 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^5.0",
-    "bapcat/remodel": "dev-master",
+    "bapcat/remodel": "dev-master.CF.scopes",
     "bapcat/phi": "^2.0",
     "bapcat/services": "^0.2",
     "bapcat/values": "^0.1.3",

@@ -33,12 +33,17 @@ $unifi = new UniFi($ioc);
 });*/
 
 use BapCat\UniFi\AccessPointGateway;
+use BapCat\UniFi\EventGateway;
 use BapCat\UniFi\SiteGateway;
 
-var_dump('SITES ---------------------------------------');
+var_dump('SITES -------------------------------------');
 $sites = $ioc->make(SiteGateway::class);
 var_dump($sites->query()->get());
 
 var_dump('APS ---------------------------------------');
 $aps = $ioc->make(AccessPointGateway::class);
 var_dump($aps->query()->get());
+
+var_dump('EVENTS -> GUEST AUTH ----------------------');
+$events = $ioc->make(EventGateway::class);
+var_dump($events->query()->guestAuthorized()->orGuestConnected()->get());
